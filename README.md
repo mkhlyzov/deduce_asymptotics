@@ -32,9 +32,17 @@ def your_function(input_data):
     pass
 
 # Call deduce_asymptotics with your input generation and function
-deduce(build_input, your_function, time_budget=10, num_samples=5)
+deduce(your_function, build_input, time_budget=10, num_samples=10)
 # time budget (seconds): Total amount of time the program is allowed to run. More of a soft upper boundary.
-# num_samples (int): Number of times function has to be evaluated at each point. Accounts for stochasticity. 
+# num_samples (int): Number of times function has to be evaluated at each point. Accounts for stochasticity.
+```
+To customize the rate at which input length gets changed:
+```python
+deduce(
+    your_function, build_input, time_budget=10, num_samples=5,
+    step=lambda n: n + 100,
+    start=100,
+)
 ```
 ## Examples
 
