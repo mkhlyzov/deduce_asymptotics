@@ -17,7 +17,7 @@ pip install -e .
 After installing the package, you can use it in your Python code as follows:
 
 ```python
-from deduce_asymptotics import deduce_asymptotics
+from deduce_asymptotics import deduce
 
 def build_input(n):
     # Implement your input data generation logic here
@@ -28,7 +28,7 @@ def your_function(input_data):
     pass
 
 # Call deduce_asymptotics with your input generation and function
-deduce_asymptotics(build_input, your_function, time_budget=10, num_samples=5)
+deduce(build_input, your_function, time_budget=10, num_samples=5)
 # time budget (seconds): Total amount of time the program is allowed to run. More of a soft upper boundary.
 # num_samples (int): Number of times function has to be evaluated at each point. Accounts for stochasticity. 
 ```
