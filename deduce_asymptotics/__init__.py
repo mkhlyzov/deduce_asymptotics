@@ -1,1 +1,1 @@
-from .deduce_asymptotics import deduce_asymptotics
+from .deduce_asymptotics import deduce

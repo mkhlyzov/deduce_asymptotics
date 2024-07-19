@@ -123,7 +123,7 @@ def plot_data(
     plt.show()
 
 
-def deduce_asymptotics(
+def deduce(
     build_input: Callable[[int], Any],
     f: Callable[..., Any],
     time_budget: float = 10.,
