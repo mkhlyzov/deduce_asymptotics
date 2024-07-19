@@ -35,9 +35,10 @@ deduce_asymptotics(build_input, your_function, time_budget=10, num_samples=5)
 ## Examples
 
 For examples of how to use the package, check out the examples folder in the GitHub repository.
-License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-Contributing
+
+## Contributing
 
 If you would like to contribute to this project, please submit a pull request or open an issue on the GitHub repository.
