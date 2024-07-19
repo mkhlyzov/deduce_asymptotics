@@ -9,6 +9,10 @@ To install the package directly from the GitHub repository, use the following co
 ```bash
 git clone https://github.com/mkhlyzov/deduce_asymptotics.git
 cd deduce_asymptotics
+pip install .
+```
+Or the editable installation:
+```bash
 pip install -e .
 ```
 
