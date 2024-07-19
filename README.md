@@ -1,10 +1,43 @@
-# How to install
->git clone https://github.com/mkhlyzov/deduce_asymptotics.git
+# deduce_asymptotics
 
->cd deduce_asymptotics
+`deduce_asymptotics` is a Python package for deducing the time complexity of functions in big-O notations. It allows you to collect runtime data for a function, fit different time complexity models to the data, and visualize the results with both regular and logarithmic scales.
 
->pip install .
+## Installation
 
+To install the package directly from the GitHub repository, use the following commands:
 
-# Examples
-Check examples folder
+```bash
+git clone https://github.com/mkhlyzov/deduce_asymptotics.git
+cd deduce_asymptotics
+pip install -e .
+```
+
+## Usage
+
+After installing the package, you can use it in your Python code as follows:
+
+```python
+from deduce_asymptotics import deduce_asymptotics
+
+def build_input(n):
+    # Implement your input data generation logic here
+    pass
+
+def your_function(input_data):
+    # Implement your function to be tested here
+    pass
+
+# Call deduce_asymptotics with your input generation and function
+deduce_asymptotics(build_input, your_function, time_budget=10, num_samples=5)
+# time budget (seconds): Total amount of time the program is allowed to run. More of a soft upper boundary.
+# num_samples (int): Number of times function has to be evaluated at each point. Accounts for stochasticity. 
+```
+## Examples
+
+For examples of how to use the package, check out the examples folder in the GitHub repository.
+License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+Contributing
+
+If you would like to contribute to this project, please submit a pull request or open an issue on the GitHub repository.
