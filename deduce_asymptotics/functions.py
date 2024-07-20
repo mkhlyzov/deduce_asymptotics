@@ -60,6 +60,17 @@ COMPLEXITIES = [
         lambda n, a, b: a * n ** 3 * np.log(n) + b, 
         lambda    a, b: f'{a:.{REPR_PRECISION}g} * n^3 * log(n) + {b:.{REPR_PRECISION}g}',
     ),
+]
+
+COMPLEXITIES_EXTRA = [
+    Function('O(n^k)',
+        lambda n, a, b, k: a * n ** k + b,
+        lambda    a, b, k: f'{a:.{REPR_PRECISION}g} * n^{k:.{REPR_PRECISION}g} + {b:.{REPR_PRECISION}g}',
+    ),
+    Function('O(n^k log^m n)',
+        lambda n, a, b, k, m: a * (n ** k) * (np.log(n) ** m) + b,
+        lambda    a, b, k, m: f'{a:.{REPR_PRECISION}g} * n^{k:.{REPR_PRECISION}g} * log(n)^{m:.{REPR_PRECISION}g} + {b:.{REPR_PRECISION}g}',
+    ),
     Function('O(e^n)',
         lambda n, a, b: a * np.exp(n) + b,
         lambda    a, b: f'{a:.{REPR_PRECISION}g} * exp(n) + {b:.{REPR_PRECISION}g}',
