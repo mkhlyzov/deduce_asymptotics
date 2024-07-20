@@ -121,13 +121,11 @@ def plot_data(
     solver: Solver = None,
     f_name: str = None,
 ) -> None:
-    # Create subplots
     plt.style.use('ggplot')
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
     if errors is None:
         errors = np.zeros_like(y)
-    # Regular scale plot
 
     x_ = np.linspace(x[0], x[-1], len(x) * 20, dtype=float)
     for ax in [ax1, ax2]:
@@ -222,4 +220,19 @@ def deduce(
     plot_data(n_values, times, errors, best_fit, f.__name__)
     print(f"Time complexity of the function {f.__name__} is {best_fit.name}")
     print(f'Time = {best_fit} (sec)')
+    return best_fit, n_values, times
+
+
+def deduce_helper(
+    f: Callable[..., Any],
+    build_input: Callable[[int], Any],
+    time_budget: float = 10.,
+    num_samples: int = 10,
+    step: Callable = lambda n: int(n * 1.1),
+    start: int = 64,
+    extra: bool = False
+) -> None:
+    n_values, times, errors = collect_data(f, build_input, time_budget, num_samples, step, start)
+    solver_classes = SOLVERS_ALL if not extra else SOLVERS_EXTRA + SOLVERS_ALL
+    best_fit = fit_time_complexity(n_values, times, solver_classes)
     return best_fit, n_values, times
