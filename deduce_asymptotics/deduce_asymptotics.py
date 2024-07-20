@@ -217,8 +217,7 @@ def deduce(
     extra: bool = False
 ) -> None:
     n_values, times, errors = collect_data(f, build_input, time_budget, num_samples, step, start)
-    # solver_classes = SOLVERS_ALL if not extra else SOLVERS_EXTRA
-    solver_classes = SOLVERS_ALL + SOLVERS_EXTRA
+    solver_classes = SOLVERS_ALL if not extra else SOLVERS_EXTRA + SOLVERS_ALL
     best_fit = fit_time_complexity(n_values, times, solver_classes)
     plot_data(n_values, times, errors, best_fit, f.__name__)
     print(f"Time complexity of the function {f.__name__} is {best_fit.name}")
