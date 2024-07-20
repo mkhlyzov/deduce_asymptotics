@@ -19,7 +19,8 @@ class Solver(object):
     def __init__(self, params: np.ndarray[float] = None):
         if params is not None:
             self.params = params
-        self.bounds = [(0, 10)] * len(self.params)
+        if not hasattr(self, 'bounds'):
+            self.bounds = [[0, 10]] * len(self.params)
 
     def __call__(self, x) -> float:
         raise NotImplementedError
@@ -28,15 +29,29 @@ class Solver(object):
         return self._loss(self.params, x, y)
 
     def _loss(self, params, x, y) -> float:
+        old_params = self.params
         self.params = params
         y_hat = self(x)
         # loss = np.mean((y - y_hat) ** 2) + np.mean(params ** 2) * 0.
         loss = np.mean(np.abs(y - y_hat) / y)
+        self.params = old_params
         return loss
     
     @suppress_warnings
     def fit(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
-        return self.fit_genetic(x, y)
+        while True:
+            self.fit_genetic(x, y)
+            hits = 0
+            for p, b in zip(self.params, self.bounds):
+                if np.isclose(p, b[1]):
+                    b[1] = b[1] * 10
+                    hits += 1
+                if b[0] > 0 and np.isclose(p, b[0], atol=b[0] / 100):
+                    b[0] = b[0] / 10
+                    hits += 1
+            if hits == 0:
+                break
+        return self
     
     def fit_minimize(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
         result = minimize(self._loss, self.params, args=(x, y))
@@ -141,7 +156,8 @@ class CubicLog(Solver):
 
 class Exponential(Solver):
     name = "O(e^n)"
-    params = np.array([1., 1., 1.])
+    params = np.array([1., 1., 1.]) * 1e-5
+    bounds = [[0, 10], [0, 0.1], [0, 10]]
     def __call__(self, x):
         return self.params[0] * np.exp(self.params[1] * x) + self.params[2]
     def __repr__(self):
