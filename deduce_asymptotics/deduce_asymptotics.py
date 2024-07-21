@@ -51,7 +51,7 @@ def collect_data(
         errors.append(std_runtime)
         logging.info(f"Iteration {iteration:3}. Input length: {n}, Avg time: {avg_runtime:.4g} ± {std_runtime:.4g} seconds")
 
-        n = step(n)
+        n = max(step(n), n + 1)
         iteration += 1
 
     return np.array(n_values), np.array(times), np.array(errors)
@@ -61,15 +61,29 @@ def collect_data(
 def fit_time_complexity(n_values, t_values, solver_classes=SOLVERS_ALL) -> Solver:
     logging.info(f"Starting the fit...")
     logging.info(f"Potential candidates: {[s.name for s in solver_classes]}")
+    t0 = time.perf_counter()
 
     solvers = []
     losses = []
     X, Y = np.array(n_values, dtype=float), np.array(t_values, dtype=float)
 
+    if len(X) <= 10:
+        test_horizon = 1
+    elif len(X) <= 15:
+        test_horizon = len(X) - 10
+    else:
+        test_horizon = 5
+
+    # test_horizon = 1
+
     for solver_class in solver_classes:
         solver = solver_class()
-        solver.fit(X[:-1], Y[:-1])
-        w = solver.loss(X[-1], Y[-1])
+
+        w = 0
+        for i in range(test_horizon, 0, -1):
+            solver.fit(X[:-i], Y[:-i])
+            w += solver.loss(X[-i], Y[-i])
+
         solver.fit(X, Y)
         loss = solver.loss(X, Y)
         loss *= w
@@ -80,6 +94,8 @@ def fit_time_complexity(n_values, t_values, solver_classes=SOLVERS_ALL) -> Solve
         logging.info(f"Solver {solver.name:15}  loss = {loss:5g}")
 
     best_solver = solvers[np.argmin(losses)]
+
+    logging.info(f"Optimization took: {time.perf_counter() - t0:.4g} (sec)")
     logging.info(f"Best fit: {best_solver.name} with parameters {best_solver.params}")
     return best_solver
 
