@@ -37,19 +37,26 @@ class Solver(object):
         self.params = old_params
         return loss
     
+    def _update_bounds(self) -> int:
+        hits = 0
+        for p, b in zip(self.params, self.bounds):
+            if isinstance(b, tuple):
+                # Can't update tuples
+                continue
+            lower, upper = b
+            if np.isclose(p, upper):
+                upper = upper * 10
+                hits += 1
+            if lower > 0 and np.isclose(p, lower, atol=lower / 100):
+                lower = lower / 10
+                hits += 1
+        return hits
+    
     @suppress_warnings
     def fit(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
         while True:
             self.fit_genetic(x, y)
-            hits = 0
-            for p, b in zip(self.params, self.bounds):
-                if np.isclose(p, b[1]):
-                    b[1] = b[1] * 10
-                    hits += 1
-                if b[0] > 0 and np.isclose(p, b[0], atol=b[0] / 100):
-                    b[0] = b[0] / 10
-                    hits += 1
-            if hits == 0:
+            if self._update_bounds() == 0:
                 break
         return self
     
