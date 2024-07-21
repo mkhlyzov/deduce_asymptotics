@@ -69,21 +69,6 @@ class Solver(object):
         result = differential_evolution(self._loss, self.bounds, args=(x, y))
         self.params = result.x
         return self
-
-    def fit_shgo(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
-        result = shgo(self._loss, self.bounds, args=(x, y))
-        self.params = result.x
-        return self
-    
-    def fit_dual(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
-        result = dual_annealing(self._loss, self.bounds, args=(x, y))
-        self.params = result.x
-        return self
-    
-    def fit_direct(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
-        result = direct(self._loss, self.bounds, args=(x, y))
-        self.params = result.x
-        return self
     
     def __repr__(self):
         raise NotImplementedError
@@ -91,7 +76,7 @@ class Solver(object):
 
 class Constant(Solver):
     name = "O(1)"
-    params = np.array([1.])
+    params = np.array([1.]) * 1e-5
     def __call__(self, x):
         return self.params[0]
     def __repr__(self):
@@ -100,7 +85,7 @@ class Constant(Solver):
 
 class Log(Solver):
     name = "O(log n)"
-    params = np.array([1., 1.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * np.log(x) + self.params[1]
     def __repr__(self):
@@ -109,7 +94,7 @@ class Log(Solver):
 
 class Linear(Solver):
     name = "O(n)"
-    params = np.array([1., 1.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * x + self.params[1]
     def __repr__(self):
@@ -118,7 +103,7 @@ class Linear(Solver):
 
 class LinearLog(Solver):
     name = "O(n log n)"
-    params = np.array([1., 1.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * x * np.log(x) + self.params[1]
     def __repr__(self):
@@ -127,7 +112,7 @@ class LinearLog(Solver):
 
 class Quadratic(Solver):
     name = "O(n^2)"
-    params = np.array([0., 0.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * x ** 2 + self.params[1]
     def __repr__(self):
@@ -136,7 +121,7 @@ class Quadratic(Solver):
 
 class QuadraticLog(Solver):
     name = "O(n^2 log n)"
-    params = np.array([0., 0.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * (x ** 2) * np.log(x) + self.params[1]
     def __repr__(self):
@@ -145,7 +130,7 @@ class QuadraticLog(Solver):
 
 class Cubic(Solver):
     name = "O(n^3)"
-    params = np.array([1., 1.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * x ** 3 + self.params[1]
     def __repr__(self):
@@ -154,7 +139,7 @@ class Cubic(Solver):
 
 class CubicLog(Solver):
     name = "O(n^3 log n)"
-    params = np.array([1., 1.])
+    params = np.array([1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * x ** 3 * np.log(x) + self.params[1]
     def __repr__(self):
@@ -173,7 +158,7 @@ class Exponential(Solver):
 
 class Polynomial(Solver):
     name = "O(n^p)"
-    params = np.array([1., 1., 1.])
+    params = np.array([1., 1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * (x ** self.params[1]) + self.params[2]
     def __repr__(self):
@@ -182,7 +167,7 @@ class Polynomial(Solver):
 
 class PolynomialLog(Solver):
     name = "O(n^p log^d n)"
-    params = np.array([1., 1., 1., 1.])
+    params = np.array([1., 1., 1., 1.]) * 1e-5
     def __call__(self, x):
         return self.params[0] * (x ** self.params[1]) * (np.log(x) ** self.params[2]) + self.params[3]
     def __repr__(self):
