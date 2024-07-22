@@ -81,12 +81,16 @@ class Deducer(object):
     def collect(self,
         time_budget: float = 10,    # seconds
         num_samples: int = 10,
+        start: int|None = None
     ) -> None:
         """Measures runtime of funciton for different input sizes."""
         logging.info(f"Collecting data for {self.function.__name__}...")
         time_start = time.time()
         iteration = len(self._data)
-        n = 2 if iteration == 0 else self.get_next_n(  sorted(self._data)[-1]  )
+        n = (start if start is not None else
+            2 if iteration == 0 else
+            self.get_next_n(np.max(self.xs))
+        )
         while time.time() - time_start < time_budget:
             for _ in range(num_samples):  # Repeat several times to account for randomness
                 self.measure_runtime(n)  # this call automatycally saves measurements
@@ -219,10 +223,11 @@ class Deducer(object):
         time_budget: float = 10,    # seconds
         num_samples: int = 10,
         step: Callable[[int], int] = lambda n: int(n * 1.1),
+        start: int|None = None,
         extras: bool=False,
     ) -> 'Deducer':
         self._step = step
-        self.collect(time_budget, num_samples)
+        self.collect(time_budget, num_samples, start)
         solver_classes = SOLVERS_ALL if not extras else SOLVERS_EXTRA
         self.fit(solver_classes)
         # self.report()
