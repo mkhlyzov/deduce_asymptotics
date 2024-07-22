@@ -170,9 +170,9 @@ class Deducer(object):
     function: Callable[(...), Any]
     build_input: Callable[[int], Any]
 
-    xs: list[float] = None
-    ys: list[float] = None
-    errors: list[float] = None
+    _xs: list[float] = None
+    _ys: list[float] = None
+    _errors: list[float] = None
     best_solver: Solver = None
     solvers: list[Solver] = None
     losses: list[float] = None
@@ -184,12 +184,24 @@ class Deducer(object):
         self.function = function
         self.build_input = build_input
 
-        self.xs = []
-        self.ys = []
-        self.errors = []
+        self._xs = []
+        self._ys = []
+        self._errors = []
         self.best_solver = None
         self.solvers = []
         self.losses = []
+
+    @property
+    def xs(self) -> np.ndarray[float]:
+        return np.array(self._xs, dtype=float)
+    
+    @property
+    def ys(self) -> np.ndarray[float]:
+        return np.array(self._ys, dtype=float)
+
+    @property
+    def errors(self) -> np.ndarray[float]:
+        return np.array(self._errors, dtype=float)
     
     def measure_runtime(self, n: int):
         data = self.build_input(n)
@@ -210,10 +222,10 @@ class Deducer(object):
         """Measures runtime of funciton for different input sizes."""
         logging.info(f"Collecting data for {self.function.__name__}...")
         time_start = time.perf_counter()
-        iteration = len(self.xs)
-        n = 2 if iteration == 0 else self.get_next_n(self.xs[-1])
+        iteration = len(self._xs)
+        n = 2 if iteration == 0 else self.get_next_n(self._xs[-1])
         while time.perf_counter() - time_start < time_budget:
-            self.xs.append(n)
+            self._xs.append(n)
             single_run_times = []
             for _ in range(num_samples):  # Repeat several times to account for randomness
                 runtime = self.measure_runtime(n)
@@ -221,8 +233,8 @@ class Deducer(object):
             
             avg_runtime = np.mean(single_run_times)
             std_runtime = np.std(single_run_times)
-            self.ys.append(avg_runtime)
-            self.errors.append(std_runtime)
+            self._ys.append(avg_runtime)
+            self._errors.append(std_runtime)
             logging.info(f"Iteration {iteration:3}. Input length: {n}, Avg time: {avg_runtime:.4n} ± {std_runtime:.4n} seconds")
 
             n = self.get_next_n(n)
@@ -246,7 +258,7 @@ class Deducer(object):
         logging.info(f"Starting the fit...")
         logging.info(f"Potential candidates: {[s.name for s in solver_classes]}")
         t0 = time.perf_counter()
-        X, Y = np.array(self.xs, dtype=float), np.array(self.ys, dtype=float)
+        X, Y = self.xs, self.ys
 
         if len(X) <= 10:
             test_horizon = 1
