@@ -1,17 +1,12 @@
-import logging
+from datetime import datetime
 import time
 from typing import Callable, Any, Tuple, List, Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import OptimizeWarning
 
 from .solvers import Solver, SOLVERS_ALL, SOLVERS_EXTRA
 from .utils import suppress_warnings
-
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-# logging.basicConfig(format='%(asctime)s - %(message)s')
 
 
 class Deducer(object):
@@ -81,10 +76,12 @@ class Deducer(object):
     def collect(self,
         time_budget: float = 10,    # seconds
         num_samples: int = 10,
-        start: int|None = None
+        start: int|None = None,
+        verbose=False,
     ) -> None:
         """Measures runtime of funciton for different input sizes."""
-        logging.info(f"Collecting data for {self.function.__name__}...")
+        verboseprint = print if verbose else lambda *a, **k: None
+        verboseprint(f"{datetime.now():%H:%M:%S} Collecting data for '{self.function.__name__}'...")
         time_start = time.time()
         iteration = len(self._data)
         n = (start if start is not None else
@@ -97,8 +94,10 @@ class Deducer(object):
             
             avg_runtime = np.mean(self._data[n])
             std_runtime = np.std(self._data[n])
-            logging.info(f"Iteration {iteration:3}. Input length: {n}, Avg time: {avg_runtime:.4n} ± {std_runtime:.4n} seconds")
-
+            verboseprint((
+                f"{datetime.now():%H:%M:%S} Iteration {iteration:3}. Input length: {n}, "
+                f"Avg time: {avg_runtime:.4n} ± {std_runtime:.4n} seconds"
+            ))
             n = self.get_next_n(n)
             iteration += 1
 
@@ -115,10 +114,12 @@ class Deducer(object):
     @suppress_warnings
     def fit(self,
         solver_classes: list[type[Solver]] = SOLVERS_ALL,
+        verbose=False,
     ) -> 'Deducer':
         """Fits solvers from 'solver_classes' to previosly collected data."""
-        logging.info(f"Starting the fit...")
-        logging.info(f"Potential candidates: {[s.name for s in solver_classes]}")
+        verboseprint = print if verbose else lambda *a, **k: None
+        verboseprint(f"{datetime.now():%H:%M:%S} Starting the fit...")
+        verboseprint(f"{datetime.now():%H:%M:%S} Potential candidates: {[s.name for s in solver_classes]}")
         t0 = time.perf_counter()
         X, Y = self.data
 
@@ -134,10 +135,12 @@ class Deducer(object):
         for solver_class in solver_classes:
             solver, idx = self.get_solver(solver_class)
 
-            w = 0
-            for i in range(test_horizon, 0, -1):
-                solver.fit(X[:-i], Y[:-i])
-                w += solver.loss(X[-i], Y[-i])
+            w = 1
+            # w = 0
+            # h = len(X) // len(set(X))
+            # for i in range(test_horizon, 0, -1):
+            #     solver.fit(X[:-i*h], Y[:-i*h])
+            #     w += solver.loss(X[-i*h:], Y[-i*h:])
 
             solver.fit(X, Y)
             loss = solver.loss(X, Y)
@@ -146,11 +149,11 @@ class Deducer(object):
                 loss = np.inf
             self.solvers[idx] = solver
             self.losses[idx] = loss
-            logging.info(f"Solver {solver.name:15}  loss = {loss:6.5n}")
+            verboseprint(f"{datetime.now():%H:%M:%S} Solver {solver.name:15}  loss = {loss:6.5n}")
 
         self.best_solver = self.solvers[np.argmin(self.losses)]
-        logging.info(f"Optimization took: {time.perf_counter() - t0:.4n} (sec)")
-        logging.info(f"Best fit: {self.best_solver.name} with parameters {self.best_solver.params}")
+        verboseprint(f"{datetime.now():%H:%M:%S} Optimization took: {time.perf_counter() - t0:.4n} (sec)")
+        verboseprint(f"{datetime.now():%H:%M:%S} Best fit: {self.best_solver.name} with parameters {self.best_solver.params}")
         return self
 
     def report(self) -> None:
@@ -169,7 +172,7 @@ class Deducer(object):
 
         X, Y = self.data
 
-        x_ = np.linspace(X[0], X[-1], len(self._data) * 20, dtype=float)
+        x_ = np.linspace(X[0], X[-1], len(self._data) * 50, dtype=float)
         for ax in [ax1, ax2]:
             # ax.errorbar(self.xs, self.ys, yerr=self.errors, fmt='o',
             #             label="Measured times", capsize=5, color='blue')
@@ -199,7 +202,7 @@ class Deducer(object):
 
         X, Y = self.xs, self.ys
 
-        x_ = np.linspace(X[0], X[-1], len(X) * 20, dtype=float)
+        x_ = np.linspace(X[0], X[-1], len(X) * 50, dtype=float)
         for ax in [ax1, ax2]:
             ax.errorbar(X, Y, yerr=self.errors, fmt='.', alpha=0.9,
                         label="Measured times", capsize=5, color='blue')
@@ -225,11 +228,12 @@ class Deducer(object):
         step: Callable[[int], int] = lambda n: int(n * 1.1),
         start: int|None = None,
         extras: bool=False,
+        verbose=False,
     ) -> 'Deducer':
         self._step = step
-        self.collect(time_budget, num_samples, start)
+        self.collect(time_budget, num_samples, start, verbose)
         solver_classes = SOLVERS_ALL if not extras else SOLVERS_EXTRA
-        self.fit(solver_classes)
+        self.fit(solver_classes, verbose)
         # self.report()
         # self.plot()
         return self
