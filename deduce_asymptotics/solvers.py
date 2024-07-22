@@ -29,11 +29,23 @@ class Solver(object):
         return self._loss(self.params, x, y)
 
     def _loss(self, params, x, y) -> float:
+        if not hasattr(x, '__len__'):
+            x = np.array([x], dtype=float)
+            y = np.array([y], dtype=float)
         old_params = self.params
         self.params = params
         y_hat = self(x)
-        # loss = np.mean((y - y_hat) ** 2) + np.mean(params ** 2) * 0.
-        loss = np.mean(np.abs(y - y_hat) / y)
+
+        
+        N = 10 * len(x) // len(set(x))
+        w = np.arange(len(y) + N, N, -1, dtype=float) ** -1
+        # w = np.ones(len(y))
+        w /= np.sum(w)
+
+        loss_1 = np.dot(w, np.abs(y - y_hat) / y)
+        loss_2 = np.dot(w, (y - y_hat) ** 2)
+        loss_3 = np.mean(params ** 2)
+        loss = loss_1 * 0.1 + loss_2
         self.params = old_params
         return loss
     

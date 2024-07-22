@@ -18,9 +18,7 @@ class Deducer(object):
     function: Callable[(...), Any]
     build_input: Callable[[int], Any]
 
-    _xs: list[float] = None
-    _ys: list[float] = None
-    _errors: list[float] = None
+    _data: dict[float, list[float]]
     best_solver: Solver = None
     solvers: list[Solver] = None
     losses: list[float] = None
@@ -32,30 +30,47 @@ class Deducer(object):
         self.function = function
         self.build_input = build_input
 
-        self._xs = []
-        self._ys = []
-        self._errors = []
+        self._data = {}
         self.best_solver = None
         self.solvers = []
         self.losses = []
 
     @property
+    def data(self) -> tuple[np.ndarray[float], np.ndarray[float]]:
+        if len(self._data) == 0:
+            x, y = (), ()
+        else:
+            data = [(x, y) for x in sorted(self._data) for y in self._data[x]]
+            x, y = zip(*data)
+        x, y = np.array(x, dtype=float), np.array(y, dtype=float)
+        return x, y
+    
+    @property
     def xs(self) -> np.ndarray[float]:
-        return np.array(self._xs, dtype=float)
+        xs = sorted(self._data)
+        return np.array(xs, dtype=float)
     
     @property
     def ys(self) -> np.ndarray[float]:
-        return np.array(self._ys, dtype=float)
+        ys = [np.mean(self._data[x]) for x in sorted(self._data)]
+        return np.array(ys, dtype=float)
 
     @property
     def errors(self) -> np.ndarray[float]:
-        return np.array(self._errors, dtype=float)
+        errors = [np.std(self._data[x]) for x in sorted(self._data)]
+        return np.array(errors, dtype=float)
     
     def measure_runtime(self, n: int):
         data = self.build_input(n)
         t0 = time.perf_counter()
         _ = self.function(data)
-        return time.perf_counter() - t0      
+        dt = time.perf_counter() - t0
+
+        if n not in self._data:
+            self._data[n] = []
+        self._data[n].append(dt)
+
+        return dt
 
     def get_next_n(self, n: int) -> int:
         n = int(n)
@@ -69,20 +84,15 @@ class Deducer(object):
     ) -> None:
         """Measures runtime of funciton for different input sizes."""
         logging.info(f"Collecting data for {self.function.__name__}...")
-        time_start = time.perf_counter()
-        iteration = len(self._xs)
-        n = 2 if iteration == 0 else self.get_next_n(self._xs[-1])
-        while time.perf_counter() - time_start < time_budget:
-            self._xs.append(n)
-            single_run_times = []
+        time_start = time.time()
+        iteration = len(self._data)
+        n = 2 if iteration == 0 else self.get_next_n(  sorted(self._data)[-1]  )
+        while time.time() - time_start < time_budget:
             for _ in range(num_samples):  # Repeat several times to account for randomness
-                runtime = self.measure_runtime(n)
-                single_run_times.append(runtime)
+                self.measure_runtime(n)  # this call automatycally saves measurements
             
-            avg_runtime = np.mean(single_run_times)
-            std_runtime = np.std(single_run_times)
-            self._ys.append(avg_runtime)
-            self._errors.append(std_runtime)
+            avg_runtime = np.mean(self._data[n])
+            std_runtime = np.std(self._data[n])
             logging.info(f"Iteration {iteration:3}. Input length: {n}, Avg time: {avg_runtime:.4n} ± {std_runtime:.4n} seconds")
 
             n = self.get_next_n(n)
@@ -106,7 +116,7 @@ class Deducer(object):
         logging.info(f"Starting the fit...")
         logging.info(f"Potential candidates: {[s.name for s in solver_classes]}")
         t0 = time.perf_counter()
-        X, Y = self.xs, self.ys
+        X, Y = self.data
 
         if len(X) <= 10:
             test_horizon = 1
@@ -144,22 +154,54 @@ class Deducer(object):
             print("No data to report. Run 'collect' or 'deduce' first.")
             return
         for s, loss in zip(self.solvers, self.losses):
-            print(f'{s.name:15} =   {str(s):50}:   loss={loss:8.4n},   error={s.loss(np.array(self.xs), np.array(self.ys)):8.4n}')
+            print(f'{s.name:15} =   {str(s):50}:   loss={loss:8.4n},   error={s.loss(*self.data):8.4n}')
 
     def plot(self) -> None:
-        if self.xs is None:
+        if len(self._data) == 0:
             print("No data to display. Run 'collect' or 'deduce' first.")
             return
         plt.style.use('ggplot')
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-        x_ = np.linspace(self.xs[0], self.xs[-1], len(self.xs) * 20, dtype=float)
+        X, Y = self.data
+
+        x_ = np.linspace(X[0], X[-1], len(self._data) * 20, dtype=float)
         for ax in [ax1, ax2]:
-            ax.errorbar(self.xs, self.ys, yerr=self.errors, fmt='o',
+            # ax.errorbar(self.xs, self.ys, yerr=self.errors, fmt='o',
+            #             label="Measured times", capsize=5, color='blue')
+            ax.plot(X, Y, '.', alpha=0.9, label="Measured times", color='blue')
+            if self.best_solver is not None:
+                ax.plot(
+                    x_, self.best_solver(x_), alpha=0.9,
+                    label=f"Best fit: {self.best_solver.name}   = {self.best_solver}", color='red'
+                )
+            ax.set_xlabel("Input size (n)")
+            ax.set_ylabel("Runtime (seconds)")
+            ax.legend()
+
+        ax1.set_title(f"Runtime of function {self.function.__name__} (Regular Scale)")
+        ax2.set_title(f"Runtime of function {self.function.__name__} (Logarithmic Scale)")
+        ax2.set_xscale('log')
+        ax2.set_yscale('log')
+
+        plt.show()
+
+    def plot_err(self) -> None:
+        if len(self._data) == 0:
+            print("No data to display. Run 'collect' or 'deduce' first.")
+            return
+        plt.style.use('ggplot')
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+
+        X, Y = self.xs, self.ys
+
+        x_ = np.linspace(X[0], X[-1], len(X) * 20, dtype=float)
+        for ax in [ax1, ax2]:
+            ax.errorbar(X, Y, yerr=self.errors, fmt='.', alpha=0.9,
                         label="Measured times", capsize=5, color='blue')
             if self.best_solver is not None:
                 ax.plot(
-                    x_, self.best_solver(x_),
+                    x_, self.best_solver(x_), alpha=0.9,
                     label=f"Best fit: {self.best_solver.name}   = {self.best_solver}", color='red'
                 )
             ax.set_xlabel("Input size (n)")
