@@ -1,6 +1,6 @@
 from datetime import datetime
 import time
-from typing import Callable, Any, Tuple, List, Iterable
+from typing import Callable, Any, Tuple, List, Iterable, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,8 +46,13 @@ class Deducer(object):
         return np.array(xs, dtype=float)
     
     @property
-    def ys(self) -> np.ndarray[float]:
+    def ys_mean(self) -> np.ndarray[float]:
         ys = [np.mean(self._data[x]) for x in sorted(self._data)]
+        return np.array(ys, dtype=float)
+    
+    @property
+    def ys_min(self) -> np.ndarray[float]:
+        ys = [np.min(self._data[x]) for x in sorted(self._data)]
         return np.array(ys, dtype=float)
 
     @property
@@ -121,7 +126,8 @@ class Deducer(object):
         verboseprint(f"{datetime.now():%H:%M:%S} Starting the fit...")
         verboseprint(f"{datetime.now():%H:%M:%S} Potential candidates: {[s.name for s in solver_classes]}")
         t0 = time.perf_counter()
-        X, Y = self.data
+        # X, Y = self.data
+        X, Y = self.xs, self.ys_min
 
         if len(X) <= 10:
             test_horizon = 1
@@ -161,17 +167,29 @@ class Deducer(object):
         if self.solvers is None:
             print("No data to report. Run 'collect' or 'deduce' first.")
             return
+        sum_weight = sum([1 / loss for loss in self.losses])
         for s, loss in zip(self.solvers, self.losses):
-            print(f'{s.name:15} =   {str(s):50}:   loss={loss:8.4n},   error={s.loss(*self.data):8.4n}')
+            print(f'{s.name:15} =   {str(s):50}:  {(1 / loss) / sum_weight:4.1%} confidence;\tloss={loss:8.4n}')
+            # error={s.loss(*self.data):8.4n}
 
-    def plot(self) -> None:
+    def plot(
+        self,
+        mode: Literal['mean', 'min', 'all'] = 'all'
+    ) -> None:
         if len(self._data) == 0:
             print("No data to display. Run 'collect' or 'deduce' first.")
             return
         plt.style.use('ggplot')
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-        X, Y = self.data
+        if mode == 'all':
+            X, Y = self.data
+        elif mode == 'mean':
+            X, Y = self.xs, self.ys_mean
+        elif mode == 'min':
+            X, Y = self.xs, self.ys_min
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
 
         x_ = np.linspace(X[0], X[-1], len(self._data) * 50, dtype=float)
         for ax in [ax1, ax2]:
@@ -201,7 +219,7 @@ class Deducer(object):
         plt.style.use('ggplot')
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-        X, Y = self.xs, self.ys
+        X, Y = self.xs, self.ys_mean
 
         x_ = np.linspace(X[0], X[-1], len(X) * 50, dtype=float)
         for ax in [ax1, ax2]:
