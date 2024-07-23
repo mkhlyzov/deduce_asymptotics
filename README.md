@@ -21,7 +21,7 @@ pip install -e .
 After installing the package, you can use it in your Python code as follows:
 
 ```python
-from deduce_asymptotics import deduce
+from deduce_asymptotics import Deduce
 
 def build_input(n):
     # Implement your input data generation logic here
@@ -32,21 +32,25 @@ def your_function(input_data):
     pass
 
 # Call deduce_asymptotics with your input generation and function
-deduce(your_function, build_input, time_budget=10, num_samples=10)
+ded = Deduce(your_function, build_input)
+ded.deduce(time_budget=10, num_samples=10)
 # time budget (seconds): Total amount of time the program is allowed to run. More of a soft upper boundary.
 # num_samples (int): Number of times function has to be evaluated at each point. Accounts for stochasticity.
+ded.report()
+ded.plot()
 ```
 To customize the rate at which input length gets changed:
 ```python
-deduce(
-    your_function, build_input, time_budget=10, num_samples=5,
+ded.deduce(
+    time_budget=10, num_samples=5,
     step=lambda n: n + 100,
     start=100,
+    verbose=True
 )
 ```
 ## Examples
 
-For examples of how to use the package, check out the examples folder in the GitHub repository.
+For DETAILED walk-through of how to use the package, check out the examples folder in the GitHub repository.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
