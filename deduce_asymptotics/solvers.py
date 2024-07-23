@@ -35,17 +35,34 @@ class Solver(object):
         old_params = self.params
         self.params = params
         y_hat = self(x)
-
         
-        N = 10 * len(x) // len(set(x))
-        w = np.arange(len(y) + N, N, -1, dtype=float) ** -1
-        # w = np.ones(len(y))
+        # N = 10 * len(x) // max(len(set(x)), 1)
+        # w = np.arange(len(y) + N, N, -1, dtype=float) ** -1
+        w = np.ones(len(y))
         w /= np.sum(w)
 
-        loss_1 = np.dot(w, np.abs(y - y_hat) / y)
+        # loss_1 = np.dot(w, np.abs(y - y_hat) / y)
         loss_2 = np.dot(w, (y - y_hat) ** 2)
-        loss_3 = np.mean(params ** 2)
-        loss = loss_1 * 0.1 + loss_2
+        # loss_3 = np.mean(params ** 2)
+        loss = loss_2
+        self.params = old_params
+        return loss
+    
+    def _loss_l1(self, params, x, y) -> float:
+        old_params = self.params
+        self.params = params
+        y_hat = self(x)
+        w = np.ones(len(y)) / len(y)
+        loss = np.dot(w, np.abs(y - y_hat) / y)
+        self.params = old_params
+        return loss
+    
+    def _loss_l2(self, params, x, y) -> float:
+        old_params = self.params
+        self.params = params
+        y_hat = self(x)
+        w = np.ones(len(y)) / len(y)
+        loss = np.dot(w, (y - y_hat) ** 2)
         self.params = old_params
         return loss
     
@@ -65,7 +82,11 @@ class Solver(object):
         return hits
     
     @suppress_warnings
-    def fit(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
+    def fit(
+        self,
+        x: np.ndarray[float],
+        y: np.ndarray[float],
+    ) -> None:
         while True:
             self.fit_genetic(x, y)
             if self._update_bounds() == 0:
@@ -80,6 +101,22 @@ class Solver(object):
     def fit_genetic(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
         result = differential_evolution(self._loss, self.bounds, args=(x, y))
         self.params = result.x
+        return self
+    
+    def fit_genetic_l1(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
+        while True:
+            result = differential_evolution(self._loss_l1, self.bounds, args=(x, y))
+            self.params = result.x
+            if self._update_bounds() == 0:
+                break
+        return self
+    
+    def fit_genetic_l2(self, x: np.ndarray[float], y: np.ndarray[float]) -> None:
+        while True:
+            result = differential_evolution(self._loss_l2, self.bounds, args=(x, y))
+            self.params = result.x
+            if self._update_bounds() == 0:
+                break
         return self
     
     def __repr__(self):

@@ -142,11 +142,12 @@ class Deducer(object):
             #     solver.fit(X[:-i*h], Y[:-i*h])
             #     w += solver.loss(X[-i*h:], Y[-i*h:])
 
-            solver.fit(X, Y)
+            solver.fit_genetic_l2(X, Y)
             loss = solver.loss(X, Y)
             loss *= w
             if np.isnan(loss):
                 loss = np.inf
+            # solver.fit_genetic_l1(X, Y)
             self.solvers[idx] = solver
             self.losses[idx] = loss
             verboseprint(f"{datetime.now():%H:%M:%S} Solver {solver.name:15}  loss = {loss:6.5n}")
